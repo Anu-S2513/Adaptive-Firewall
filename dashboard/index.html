@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>SentinelAI Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+
+        <div class="logo">
+            🛡️ SentinelAI
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+
+            <span id="systemStatus">
+                Connecting...
+            </span>
+        </div>
+
+    </header>
+
+
+    <!-- MAIN CONTENT -->
+    <main>
+
+        <!-- DASHBOARD TITLE -->
+        <div class="dashboard-title">
+
+            <h1>Network Security Dashboard</h1>
+
+            <p>
+                Real-time AI-powered network threat detection
+            </p>
+
+        </div>
+
+
+        <!-- GENERAL STATISTICS -->
+        <section class="stats-grid">
+
+            <div class="card">
+
+                <h3>Total Predictions</h3>
+
+                <p id="totalPredictions">--</p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h3>Normal Traffic</h3>
+
+                <p id="normalPredictions">--</p>
+
+            </div>
+
+
+            <div class="card danger-card">
+
+                <h3>Attack Predictions</h3>
+
+                <p id="attackPredictions">--</p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h3>Average Attack Risk</h3>
+
+                <p id="averageRisk">--</p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ADAPTIVE FIREWALL STATISTICS -->
+        <section class="stats-grid">
+
+            <div class="card">
+
+                <h3>Allowed</h3>
+
+                <p id="allowedCount">--</p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h3>Monitored</h3>
+
+                <p id="monitoredCount">--</p>
+
+            </div>
+
+
+            <div class="card danger-card">
+
+                <h3>Blocked</h3>
+
+                <p id="blockedCount">--</p>
+
+            </div>
+
+        </section>
+
+
+        <!-- LIVE NETWORK ACTIVITY -->
+        <section class="table-section">
+
+            <div class="section-header">
+
+                <h2>Live Network Activity</h2>
+
+                <span>
+                    Auto-refresh: 5 seconds
+                </span>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Time</th>
+                            <th>Source</th>
+                            <th>Destination</th>
+                            <th>Protocol</th>
+                            <th>Prediction</th>
+                            <th>Attack Risk</th>
+                            <th>Firewall Action</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="predictionTable">
+
+                        <tr>
+
+                            <td colspan="7">
+                                Loading data...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- JAVASCRIPT -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>

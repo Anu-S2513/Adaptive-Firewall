@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+# Python test/cache
+.pytest_cache/
+
+# Large ML files
+*.pkl
+*.joblib
+
+# CSV generated logs
+ai/logs/predictions.csv
+# ML datasets
+ai/dataset/
