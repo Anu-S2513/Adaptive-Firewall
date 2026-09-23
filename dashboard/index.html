@@ -3,178 +3,555 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>SentinelAI Dashboard</title>
+    <title>SentinelAI | Network Security</title>
 
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- HEADER -->
-    <header>
+    <div class="app">
 
-        <div class="logo">
-            🛡️ SentinelAI
-        </div>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
 
-        <div class="status">
-            <span class="status-dot"></span>
+            <div class="brand">
+                <div class="brand-icon">🛡</div>
 
-            <span id="systemStatus">
-                Connecting...
-            </span>
-        </div>
+                <div>
+                    <h2>Sentinel<span>AI</span></h2>
+                    <p>Network Security</p>
+                </div>
+            </div>
 
-    </header>
+            <nav class="nav">
 
+                <a class="nav-item active" href="#">
+                    <span>⌂</span>
+                    Dashboard
+                </a>
 
-    <!-- MAIN CONTENT -->
-    <main>
+                <a class="nav-item" href="#activity">
+                    <span>〽</span>
+                    Live Traffic
+                </a>
 
-        <!-- DASHBOARD TITLE -->
-        <div class="dashboard-title">
+                <a class="nav-item" href="#analytics">
+                    <span>▥</span>
+                    Analytics
+                </a>
 
-            <h1>Network Security Dashboard</h1>
+                <a class="nav-item" href="#alerts">
+                    <span>♟</span>
+                    Alerts
+                    <span class="alert-count" id="navAlertCount">0</span>
+                </a>
 
-            <p>
-                Real-time AI-powered network threat detection
-            </p>
+                <a class="nav-item" href="#firewall">
+                    <span>◈</span>
+                    Firewall
+                </a>
 
-        </div>
+                <a class="nav-item" href="#activity">
+                    <span>▤</span>
+                    Logs
+                </a>
 
+            </nav>
 
-        <!-- GENERAL STATISTICS -->
-        <section class="stats-grid">
+            <div class="sidebar-bottom">
 
-            <div class="card">
+                <div class="protection-icon">◉</div>
 
-                <h3>Total Predictions</h3>
+                <p>
+                    Protecting<br>
+                    Networks with AI
+                </p>
 
-                <p id="totalPredictions">--</p>
+                <div class="accent-line"></div>
 
             </div>
 
-
-            <div class="card">
-
-                <h3>Normal Traffic</h3>
-
-                <p id="normalPredictions">--</p>
-
-            </div>
+        </aside>
 
 
-            <div class="card danger-card">
+        <!-- MAIN -->
+        <main class="main">
 
-                <h3>Attack Predictions</h3>
+            <!-- TOP HEADER -->
+            <header class="topbar">
 
-                <p id="attackPredictions">--</p>
+                <div>
+                    <h1>Real-Time Network Security Monitoring</h1>
 
-            </div>
+                    <p>
+                        AI-powered detection
+                        <span>•</span>
+                        Adaptive protection
+                        <span>•</span>
+                        Safer networks
+                    </p>
+                </div>
 
+                <div class="top-actions">
 
-            <div class="card">
+                    <div class="system-status">
 
-                <h3>Average Attack Risk</h3>
+                        <span class="live-dot"></span>
 
-                <p id="averageRisk">--</p>
+                        <div>
+                            <small>System Status</small>
 
-            </div>
+                            <strong id="systemStatus">
+                                CONNECTING
+                            </strong>
+                        </div>
 
-        </section>
+                    </div>
 
+                    <div class="refresh-status">
 
-        <!-- ADAPTIVE FIREWALL STATISTICS -->
-        <section class="stats-grid">
+                        <span>↻</span>
 
-            <div class="card">
+                        <div>
+                            <small>Auto Refresh</small>
+                            <strong>5 sec</strong>
+                        </div>
 
-                <h3>Allowed</h3>
+                    </div>
 
-                <p id="allowedCount">--</p>
+                </div>
 
-            </div>
-
-
-            <div class="card">
-
-                <h3>Monitored</h3>
-
-                <p id="monitoredCount">--</p>
-
-            </div>
-
-
-            <div class="card danger-card">
-
-                <h3>Blocked</h3>
-
-                <p id="blockedCount">--</p>
-
-            </div>
-
-        </section>
+            </header>
 
 
-        <!-- LIVE NETWORK ACTIVITY -->
-        <section class="table-section">
+            <!-- KPI CARDS -->
+            <section class="kpi-grid">
 
-            <div class="section-header">
+                <div class="kpi-card blue">
 
-                <h2>Live Network Activity</h2>
+                    <div class="kpi-top">
+                        <span>Total Predictions</span>
+                        <div class="kpi-icon">◈</div>
+                    </div>
+
+                    <strong id="totalPredictions">--</strong>
+
+                    <div class="mini-line blue-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card green">
+
+                    <div class="kpi-top">
+                        <span>Normal Traffic</span>
+                        <div class="kpi-icon">✓</div>
+                    </div>
+
+                    <strong id="normalPredictions">--</strong>
+
+                    <div class="mini-line green-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card red">
+
+                    <div class="kpi-top">
+                        <span>Attack Predictions</span>
+                        <div class="kpi-icon">!</div>
+                    </div>
+
+                    <strong id="attackPredictions">--</strong>
+
+                    <div class="mini-line red-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card purple">
+
+                    <div class="kpi-top">
+                        <span>Average Attack Risk</span>
+                        <div class="kpi-icon">◔</div>
+                    </div>
+
+                    <strong id="averageRisk">--</strong>
+
+                    <div class="mini-line purple-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card green">
+
+                    <div class="kpi-top">
+                        <span>Allowed</span>
+                        <div class="kpi-icon">✓</div>
+                    </div>
+
+                    <strong id="allowedCount">--</strong>
+
+                    <div class="mini-line green-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card yellow">
+
+                    <div class="kpi-top">
+                        <span>Monitored</span>
+                        <div class="kpi-icon">◉</div>
+                    </div>
+
+                    <strong id="monitoredCount">--</strong>
+
+                    <div class="mini-line yellow-line"></div>
+
+                </div>
+
+
+                <div class="kpi-card red">
+
+                    <div class="kpi-top">
+                        <span>Blocked</span>
+                        <div class="kpi-icon">⊘</div>
+                    </div>
+
+                    <strong id="blockedCount">--</strong>
+
+                    <div class="mini-line red-line"></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ANALYTICS ROW -->
+            <section class="analytics-grid" id="analytics">
+
+                <!-- TRAFFIC CLASSIFICATION -->
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h2>Traffic Classification</h2>
+                            <p>Current prediction distribution</p>
+                        </div>
+
+                    </div>
+
+                    <div class="donut-layout">
+
+                        <div class="donut" id="trafficDonut">
+
+                            <div class="donut-center">
+                                <strong id="donutTotal">0</strong>
+                                <span>Total</span>
+                            </div>
+
+                        </div>
+
+                        <div class="legend">
+
+                            <div class="legend-item">
+
+                                <span class="legend-dot normal-dot"></span>
+
+                                <div>
+                                    <strong>Normal</strong>
+                                    <span id="normalPercent">0%</span>
+                                </div>
+
+                            </div>
+
+
+                            <div class="legend-item">
+
+                                <span class="legend-dot attack-dot"></span>
+
+                                <div>
+                                    <strong>Attack</strong>
+                                    <span id="attackPercent">0%</span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- RISK PANEL -->
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h2>Attack Risk</h2>
+                            <p>Recent prediction activity</p>
+                        </div>
+
+                        <span class="live-label">
+                            <span></span>
+                            LIVE
+                        </span>
+
+                    </div>
+
+                    <div class="risk-chart" id="riskChart">
+
+                        <div class="chart-empty">
+                            Waiting for prediction data...
+                        </div>
+
+                    </div>
+
+                    <div class="chart-labels">
+                        <span>Recent</span>
+                        <span>Latest</span>
+                    </div>
+
+                </div>
+
+
+                <!-- FIREWALL -->
+                <div class="panel" id="firewall">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h2>Firewall Decisions</h2>
+                            <p>Current enforcement distribution</p>
+                        </div>
+
+                    </div>
+
+                    <div class="donut-layout">
+
+                        <div class="donut firewall-donut" id="firewallDonut">
+
+                            <div class="donut-center">
+                                <strong id="firewallTotal">0</strong>
+                                <span>Total</span>
+                            </div>
+
+                        </div>
+
+                        <div class="legend">
+
+                            <div class="legend-item">
+
+                                <span class="legend-dot allowed-dot"></span>
+
+                                <div>
+                                    <strong>Allowed</strong>
+                                    <span id="allowedPercent">0%</span>
+                                </div>
+
+                            </div>
+
+
+                            <div class="legend-item">
+
+                                <span class="legend-dot monitored-dot"></span>
+
+                                <div>
+                                    <strong>Monitored</strong>
+                                    <span id="monitoredPercent">0%</span>
+                                </div>
+
+                            </div>
+
+
+                            <div class="legend-item">
+
+                                <span class="legend-dot blocked-dot"></span>
+
+                                <div>
+                                    <strong>Blocked</strong>
+                                    <span id="blockedPercent">0%</span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- LOWER SECTION -->
+            <section class="lower-grid">
+
+                <!-- BEHAVIORAL NETWORK ANALYSIS -->
+                <div class="panel activity-panel" id="activity">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h2>Behavioral Network Analysis</h2>
+                            <p>
+                                Aggregated network flows and traffic behavior
+                            </p>
+                        </div>
+
+                        <span class="record-count" id="recordCount">
+                            0 active flows
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-container">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+                                    <th>Source IP</th>
+                                    <th>Destination IP</th>
+                                    <th>Protocol</th>
+                                    <th>Packets</th>
+                                    <th>Bytes</th>
+                                    <th>Duration</th>
+                                    <th>Risk</th>
+                                    <th>Prediction</th>
+                                    <th>Action</th>
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="predictionTable">
+
+                                <tr>
+                                    <td colspan="9" class="empty">
+                                        Waiting for network flows...
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <!-- RIGHT COLUMN -->
+                <div class="right-column">
+
+                    <!-- ALERTS -->
+                    <div class="panel alerts-panel" id="alerts">
+
+                        <div class="panel-header">
+
+                            <div>
+                                <h2>Recent Alerts</h2>
+                                <p>Detected threats</p>
+                            </div>
+
+                            <span class="alert-badge" id="alertBadge">
+                                0
+                            </span>
+
+                        </div>
+
+                        <div id="recentAlerts">
+
+                            <div class="empty-alert">
+                                No attack alerts detected.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SYSTEM INFO -->
+                    <div class="panel system-panel">
+
+                        <div class="panel-header">
+
+                            <div>
+                                <h2>System Information</h2>
+                                <p>SentinelAI configuration</p>
+                            </div>
+
+                        </div>
+
+
+                        <div class="system-info">
+
+                            <div>
+                                <span>⚙</span>
+                                <label>Model</label>
+                                <strong>Random Forest</strong>
+                            </div>
+
+
+                            <div>
+                                <span>◈</span>
+                                <label>Features</label>
+                                <strong>14 Network Features</strong>
+                            </div>
+
+
+                            <div>
+                                <span>◉</span>
+                                <label>Capture</label>
+                                <strong id="captureStatus">
+                                    Monitoring
+                                </strong>
+                            </div>
+
+
+                            <div>
+                                <span>●</span>
+                                <label>API</label>
+                                <strong id="apiStatus">
+                                    Connected
+                                </strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- FOOTER -->
+            <footer>
+
+                <span>SentinelAI</span>
 
                 <span>
-                    Auto-refresh: 5 seconds
+                    ML-Based Real-Time Network Threat Detection
+                    & Adaptive Firewall
                 </span>
 
-            </div>
+            </footer>
+
+        </main>
+
+    </div>
 
 
-            <div class="table-container">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-                            <th>Time</th>
-                            <th>Source</th>
-                            <th>Destination</th>
-                            <th>Protocol</th>
-                            <th>Prediction</th>
-                            <th>Attack Risk</th>
-                            <th>Firewall Action</th>
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody id="predictionTable">
-
-                        <tr>
-
-                            <td colspan="7">
-                                Loading data...
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-    <!-- JAVASCRIPT -->
     <script src="script.js"></script>
 
 </body>

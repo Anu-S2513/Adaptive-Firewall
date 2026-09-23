@@ -1,26 +1,46 @@
-
 import sys
 import os
 import time
 
 from scapy.all import sniff
 
+
 # ============================================================
 # PROJECT PATH
 # ============================================================
 
 project_root = os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
 )
 
 sys.path.append(project_root)
+
 
 # ============================================================
 # SENTINELAI MODULES
 # ============================================================
 
 from capture.parser import parse_packet
+
 from ai.realtime_detector import analyze_packet
+
+from ai.features.flow_aggregator import (
+    save_active_flows
+)
+
+
+# ============================================================
+# ACTIVE FLOWS FILE
+# ============================================================
+
+ACTIVE_FLOWS_FILE = os.path.join(
+    project_root,
+    "ai",
+    "logs",
+    "active_flows.json"
+)
 
 
 # ============================================================
@@ -28,14 +48,38 @@ from ai.realtime_detector import analyze_packet
 # ============================================================
 
 captured_count = 0
+
 prediction_count = 0
+
 normal_count = 0
+
 attack_count = 0
 
 latest_probability = 0.0
+
 latest_action = "WAITING"
 
 last_display_time = time.time()
+
+
+# ============================================================
+# SAVE CURRENT BEHAVIORAL FLOWS
+# ============================================================
+
+def save_current_flows():
+
+    try:
+
+        save_active_flows(
+            ACTIVE_FLOWS_FILE
+        )
+
+    except Exception as error:
+
+        print(
+            f"\n[WARNING] "
+            f"Could not save active flows: {error}"
+        )
 
 
 # ============================================================
@@ -52,37 +96,85 @@ def packet_callback(packet):
     global latest_action
     global last_display_time
 
+
     # --------------------------------------------------------
-    # Parse packet
+    # PARSE PACKET
     # --------------------------------------------------------
 
-    parsed_packet = parse_packet(packet)
+    parsed_packet = parse_packet(
+        packet
+    )
 
+
+    # Ignore packets that do not contain
+    # a supported IP layer
     if parsed_packet is None:
+
         return
+
 
     captured_count += 1
 
+
     # --------------------------------------------------------
-    # Run SentinelAI analysis
+    # SENTINELAI ANALYSIS
     # --------------------------------------------------------
 
     try:
 
-        result = analyze_packet(parsed_packet)
+        result = analyze_packet(
+            parsed_packet
+        )
 
+
+        # ----------------------------------------------------
+        # IMPORTANT
+        #
+        # analyze_packet() has already updated
+        # the flow aggregator at this point.
+        #
+        # Therefore save the flows AFTER analysis.
+        # ----------------------------------------------------
+
+        save_current_flows()
+
+
+        # ----------------------------------------------------
         # Flow does not have enough packets yet
+        # ----------------------------------------------------
+
         if result is None:
+
             return
+
 
         prediction_count += 1
 
-        prediction = result["prediction"]
-        probability = result["attack_probability"]
-        firewall_action = result["firewall_action"]
 
-        latest_probability = probability
-        latest_action = firewall_action
+        prediction = result[
+            "prediction"
+        ]
+
+
+        probability = result[
+            "attack_probability"
+        ]
+
+
+        firewall_action = result[
+            "firewall_action"
+        ]
+
+
+        latest_probability = (
+            probability
+        )
+
+
+        latest_action = (
+            firewall_action
+        )
+
 
         # ----------------------------------------------------
         # ATTACK DETECTED
@@ -92,10 +184,21 @@ def packet_callback(packet):
 
             attack_count += 1
 
+
             print()
-            print("!" * 60)
-            print("              🚨 ATTACK DETECTED 🚨")
-            print("!" * 60)
+
+            print(
+                "!" * 60
+            )
+
+            print(
+                "              🚨 ATTACK DETECTED 🚨"
+            )
+
+            print(
+                "!" * 60
+            )
+
 
             print(
                 f"Source      : "
@@ -103,34 +206,55 @@ def packet_callback(packet):
                 f"{parsed_packet['source_port']}"
             )
 
+
             print(
                 f"Destination : "
                 f"{parsed_packet['destination_ip']}:"
                 f"{parsed_packet['destination_port']}"
             )
 
-            print(
-                f"Protocol    : {parsed_packet['protocol']}"
-            )
 
             print(
-                f"Probability : {probability:.2f}"
+                f"Protocol    : "
+                f"{parsed_packet['protocol']}"
             )
+
 
             print(
-                f"Prediction  : {prediction}"
+                f"Probability : "
+                f"{probability:.2f}"
             )
+
 
             print(
-                f"Firewall    : {firewall_action}"
+                f"Prediction  : "
+                f"{prediction}"
             )
 
-            print("!" * 60)
+
+            print(
+                f"Firewall    : "
+                f"{firewall_action}"
+            )
+
+
+            print(
+                f"Enforcement : "
+                f"{result.get('enforcement_status', 'N/A')}"
+            )
+
+
+            print(
+                "!" * 60
+            )
+
             print()
+
 
         else:
 
             normal_count += 1
+
 
         # ----------------------------------------------------
         # PERIODIC STATUS
@@ -138,65 +262,144 @@ def packet_callback(packet):
 
         current_time = time.time()
 
-        # Display status every 5 seconds
-        if current_time - last_display_time >= 5:
+
+        if (
+            current_time
+            -
+            last_display_time
+            >= 5
+        ):
 
             print()
-            print("-" * 60)
-            print("SENTINELAI STATUS")
-            print("-" * 60)
 
             print(
-                f"Packets Captured : {captured_count}"
+                "-" * 60
             )
 
             print(
-                f"Predictions      : {prediction_count}"
+                "SENTINELAI STATUS"
             )
 
             print(
-                f"Normal           : {normal_count}"
+                "-" * 60
             )
 
+
             print(
-                f"Attacks          : {attack_count}"
+                f"Packets Captured : "
+                f"{captured_count}"
             )
+
+
+            print(
+                f"Predictions      : "
+                f"{prediction_count}"
+            )
+
+
+            print(
+                f"Normal           : "
+                f"{normal_count}"
+            )
+
+
+            print(
+                f"Attacks          : "
+                f"{attack_count}"
+            )
+
 
             print(
                 f"Latest Risk      : "
                 f"{latest_probability:.2f}"
             )
 
+
             print(
                 f"Latest Action    : "
                 f"{latest_action}"
             )
 
-            print("-" * 60)
 
-            last_display_time = current_time
+            print(
+                f"Flow Data        : "
+                f"{ACTIVE_FLOWS_FILE}"
+            )
+
+
+            print(
+                "-" * 60
+            )
+
+
+            last_display_time = (
+                current_time
+            )
+
 
     except Exception as error:
 
         print(
-            f"\n[ERROR] ML analysis failed: {error}"
+            f"\n[ERROR] "
+            f"ML analysis failed: {error}"
         )
+
+
+        # Even if ML analysis fails,
+        # try to save the current flow state.
+        save_current_flows()
 
 
 # ============================================================
 # START SENTINELAI
 # ============================================================
 
-print("=" * 60)
-print("       SENTINELAI - REAL TIME NETWORK MONITOR")
-print("=" * 60)
+print(
+    "=" * 60
+)
+
+print(
+    "       SENTINELAI - REAL TIME NETWORK MONITOR"
+)
+
+print(
+    "=" * 60
+)
 
 print()
-print("Status : RUNNING")
+
+print(
+    "Status : RUNNING"
+)
+
 print()
-print("Monitoring network traffic...")
-print("Status updates appear every 5 seconds.")
-print("Press CTRL+C to stop.")
+
+print(
+    "Monitoring network traffic..."
+)
+
+print(
+    "Behavioral flow aggregation : ENABLED"
+)
+
+print(
+    "Flow storage :"
+)
+
+print(
+    ACTIVE_FLOWS_FILE
+)
+
+print()
+
+print(
+    "Status updates appear every 5 seconds."
+)
+
+print(
+    "Press CTRL+C to stop."
+)
+
 print()
 
 
@@ -211,45 +414,96 @@ try:
         store=False
     )
 
+
 except KeyboardInterrupt:
 
     print()
+
     print()
-    print("=" * 60)
-    print("           SENTINELAI - STOPPED")
-    print("=" * 60)
+
+    print(
+        "=" * 60
+    )
+
+    print(
+        "           SENTINELAI - STOPPED"
+    )
+
+    print(
+        "=" * 60
+    )
+
 
 finally:
 
+    # --------------------------------------------------------
+    # Final flow save
+    # --------------------------------------------------------
+
+    save_current_flows()
+
+
     print()
-    print("FINAL STATISTICS")
-    print("-" * 60)
 
     print(
-        f"Packets Captured : {captured_count}"
+        "FINAL STATISTICS"
     )
 
     print(
-        f"Predictions      : {prediction_count}"
+        "-" * 60
+    )
+
+
+    print(
+        f"Packets Captured : "
+        f"{captured_count}"
+    )
+
+
+    print(
+        f"Predictions      : "
+        f"{prediction_count}"
+    )
+
+
+    print(
+        f"Normal           : "
+        f"{normal_count}"
+    )
+
+
+    print(
+        f"Attacks          : "
+        f"{attack_count}"
+    )
+
+
+    print(
+        f"Latest Risk      : "
+        f"{latest_probability:.2f}"
+    )
+
+
+    print(
+        f"Latest Action    : "
+        f"{latest_action}"
+    )
+
+
+    print(
+        f"Behavioral Flows : "
+        f"{ACTIVE_FLOWS_FILE}"
+    )
+
+
+    print(
+        "-" * 60
     )
 
     print(
-        f"Normal           : {normal_count}"
+        "SentinelAI monitoring stopped."
     )
 
     print(
-        f"Attacks          : {attack_count}"
+        "=" * 60
     )
-
-    print(
-        f"Latest Risk      : {latest_probability:.2f}"
-    )
-
-    print(
-        f"Latest Action    : {latest_action}"
-    )
-
-    print("-" * 60)
-    print("SentinelAI monitoring stopped.")
-    print("=" * 60)
-

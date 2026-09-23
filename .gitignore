@@ -31,3 +31,4 @@ Thumbs.db
 ai/logs/predictions.csv
 # ML datasets
 ai/dataset/
+ai/logs/active_flows.json
