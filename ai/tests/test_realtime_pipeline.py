@@ -1,8 +1,9 @@
+
 import sys
 import os
+import time
 
-import pandas as pd
-
+from scapy.all import IP, TCP
 
 # ==========================================
 # ADD PROJECT ROOT
@@ -21,217 +22,105 @@ sys.path.append(project_root)
 # IMPORT SENTINELAI MODULES
 # ==========================================
 
-from ai.predict.predict import predict_flow
-from ai.firewall.adaptive_firewall import get_firewall_action
-from ai.firewall.firewall_enforcer import enforce_firewall_action
-from ai.logs.prediction_logger import log_prediction
+from capture.parser import parse_packet
+from ai.realtime_detector import analyze_packet
 
 
 # ==========================================
-# DATASET
+# CREATE SIMULATED PACKET
 # ==========================================
 
-DATASET_FILE = os.path.join(
-    project_root,
-    "ai",
-    "dataset",
-    "processed",
-    "sentinelai_training_data.csv"
-)
+def create_packet():
 
-
-# ==========================================
-# FEATURES
-# ==========================================
-
-FEATURES = [
-    "Protocol",
-    "Flow Duration",
-    "Total Fwd Packets",
-    "Total Backward Packets",
-    "Fwd Packets Length Total",
-    "Bwd Packets Length Total",
-    "Flow Bytes/s",
-    "Flow Packets/s",
-    "Packet Length Mean",
-    "Packet Length Std",
-    "SYN Flag Count",
-    "ACK Flag Count",
-    "RST Flag Count",
-    "FIN Flag Count"
-]
-
-
-# ==========================================
-# LOAD DATASET
-# ==========================================
-
-print("Loading dataset...")
-
-df = pd.read_csv(DATASET_FILE)
-
-print("Dataset loaded.")
-
-
-# ==========================================
-# SELECT HIGH-CONFIDENCE ATTACK SAMPLE
-# ==========================================
-
-attack_data = df[
-    df["Label"] != "Benign"
-].copy()
-
-if attack_data.empty:
-    raise ValueError(
-        "No attack samples found."
+    packet = (
+        IP(
+            src="192.168.1.100",
+            dst="192.168.1.200"
+        )
+        /
+        TCP(
+            sport=12345,
+            dport=21,
+            flags="S"
+        )
     )
 
-
-# ==========================================
-# FIND HIGHEST ATTACK PROBABILITY
-# ==========================================
-
-X_attack = attack_data[FEATURES]
-
-from ai.predict.predict import model
-
-probabilities = model.predict_proba(
-    X_attack
-)
-
-attack_probabilities = probabilities[:, 1]
-
-best_index = attack_probabilities.argmax()
-
-sample = attack_data.iloc[
-    best_index
-]
+    return packet
 
 
 # ==========================================
-# CREATE FLOW FEATURES
+# MAIN TEST
 # ==========================================
 
-flow_features = {
-    feature: sample[feature]
-    for feature in FEATURES
-}
+print("=" * 60)
+print("       SENTINELAI - REAL-TIME PIPELINE TEST")
+print("=" * 60)
 
+print()
+print("Creating simulated network packets...")
 
-# ==========================================
-# ML PREDICTION
-# ==========================================
+for i in range(5):
 
-result = predict_flow(
-    flow_features
-)
+    packet = create_packet()
 
-prediction = result["prediction"]
+    parsed_packet = parse_packet(packet)
 
-probability = result[
-    "attack_probability"
-]
+    if parsed_packet is None:
+        print("Packet parsing failed.")
+        sys.exit(1)
 
-
-# ==========================================
-# ADAPTIVE FIREWALL
-# ==========================================
-
-firewall_action = get_firewall_action(
-    prediction,
-    probability
-)
-
-
-# ==========================================
-# FIREWALL ENFORCEMENT
-# ==========================================
-
-enforcement_result = (
-    enforce_firewall_action(
-        firewall_action,
-        "CONTROLLED_TEST"
+    print(
+        f"Packet {i + 1}/5 parsed successfully."
     )
-)
 
+    result = analyze_packet(
+        parsed_packet
+    )
 
-# ==========================================
-# LOG RESULT
-# ==========================================
+    if result is None:
+        print(
+            "Waiting for enough packets "
+            "to create a flow..."
+        )
+    else:
 
-test_packet = {
-    "source_ip": "CONTROLLED_TEST",
-    "destination_ip": "DATASET_SAMPLE",
-    "source_port": 0,
-    "destination_port": 0,
-    "protocol": "TEST"
-}
+        print()
+        print("-" * 60)
+        print("REAL-TIME PIPELINE RESULT")
+        print("-" * 60)
 
+        print(
+            f"Prediction         : "
+            f"{result['prediction']}"
+        )
 
-test_result = {
-    "prediction": prediction,
-    "attack_probability": float(
-        probability
-    ),
-    "firewall_action": firewall_action
-}
+        print(
+            f"Attack Probability : "
+            f"{result['attack_probability']:.4f}"
+        )
 
+        print(
+            f"Firewall Action    : "
+            f"{result['firewall_action']}"
+        )
 
-log_prediction(
-    test_packet,
-    test_result
-)
+        print(
+            f"Enforcement Status : "
+            f"{result['enforcement_status']}"
+        )
 
+        print(
+            f"Message            : "
+            f"{result['enforcement_message']}"
+        )
 
-# ==========================================
-# DISPLAY RESULT
-# ==========================================
+        print("-" * 60)
+
+    time.sleep(0.1)
+
 
 print()
 print("=" * 60)
-print("SENTINELAI - END-TO-END CONTROLLED TEST")
+print("REAL-TIME PIPELINE TEST COMPLETED")
 print("=" * 60)
 
-print(
-    f"\nDataset Label       : "
-    f"{sample['Label']}"
-)
-
-print("\nML RESULT")
-
-print(
-    f"Prediction          : "
-    f"{prediction}"
-)
-
-print(
-    f"Attack Probability  : "
-    f"{probability:.4f}"
-)
-
-print("\nADAPTIVE FIREWALL")
-
-print(
-    f"Firewall Action     : "
-    f"{firewall_action}"
-)
-
-print("\nFIREWALL ENFORCEMENT")
-
-print(
-    f"Status              : "
-    f"{enforcement_result['status']}"
-)
-
-print(
-    f"Message             : "
-    f"{enforcement_result['message']}"
-)
-
-print("\nLOGGING")
-
-print(
-    "Result saved to predictions.csv"
-)
-
-print("=" * 60)

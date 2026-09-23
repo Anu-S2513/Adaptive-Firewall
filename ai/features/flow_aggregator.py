@@ -8,8 +8,8 @@ flows = {}
 
 def get_protocol_number(protocol):
     """
-    Convert protocol names into IP protocol numbers
-    compatible with the training dataset.
+    Convert protocol names into the numeric protocol values
+    used by the training dataset.
     """
 
     protocol_map = {
@@ -24,10 +24,10 @@ def get_protocol_number(protocol):
 
 def get_flow_key(packet):
     """
-    Create a unique key for identifying a network flow.
+    Create a unique key for a bidirectional network flow.
 
-    Both directions of the same connection
-    will belong to the same flow.
+    Packets travelling in both directions of the same
+    connection are placed into the same flow.
     """
 
     endpoint1 = (
@@ -40,8 +40,8 @@ def get_flow_key(packet):
         str(packet["destination_port"])
     )
 
-    # Sort endpoints so forward and backward
-    # packets belong to the same flow
+    # Sort endpoints so both directions produce
+    # the same flow key.
     endpoints = sorted([endpoint1, endpoint2])
 
     return (
@@ -62,7 +62,7 @@ def create_flow(packet):
         "start_time": now,
         "last_time": now,
 
-        # First packet defines the initiator
+        # First packet establishes the flow initiator.
         "initiator_ip": packet["source_ip"],
         "initiator_port": str(packet["source_port"]),
 
@@ -83,7 +83,7 @@ def create_flow(packet):
 
 def update_flow(flow, packet):
     """
-    Update flow statistics using a real captured packet.
+    Update the statistics of an existing flow.
     """
 
     now = datetime.now()
@@ -91,7 +91,10 @@ def update_flow(flow, packet):
 
     packet_size = packet["packet_size"]
 
+    # --------------------------------------------------
     # Determine packet direction
+    # --------------------------------------------------
+
     if (
         packet["source_ip"] == flow["initiator_ip"]
         and str(packet["source_port"]) == flow["initiator_port"]
@@ -103,10 +106,16 @@ def update_flow(flow, packet):
         flow["backward_packets"] += 1
         flow["backward_bytes"] += packet_size
 
+    # --------------------------------------------------
     # Store packet size
+    # --------------------------------------------------
+
     flow["packet_sizes"].append(packet_size)
 
+    # --------------------------------------------------
     # Count TCP flags
+    # --------------------------------------------------
+
     flags = str(packet["tcp_flags"])
 
     if "S" in flags:
@@ -128,27 +137,32 @@ def process_packet(
     prediction_interval=10
 ):
     """
-    Add a real packet to its network flow.
+    Add a captured packet to its corresponding flow.
 
-    Prediction logic:
+    Prediction schedule:
 
-    Packets 1-4  -> Collect data
-    Packet 5     -> Prediction
-    Packets 6-14 -> Collect data
-    Packet 15    -> Prediction
-    Packets 16-24 -> Collect data
-    Packet 25     -> Prediction
+        Packets 1-4   -> collect
+        Packet 5      -> predict
+        Packets 6-14  -> collect
+        Packet 15     -> predict
+        Packets 16-24 -> collect
+        Packet 25     -> predict
+        ...
+
+    Returns:
+        Feature dictionary when prediction is due.
+        None otherwise.
     """
 
     flow_key = get_flow_key(packet)
 
-    # Create flow if it does not already exist
+    # Create a new flow when necessary.
     if flow_key not in flows:
         flows[flow_key] = create_flow(packet)
 
     flow = flows[flow_key]
 
-    # Update flow using the current real packet
+    # Add the current packet to the flow.
     update_flow(flow, packet)
 
     total_packets = (
@@ -156,39 +170,60 @@ def process_packet(
         + flow["backward_packets"]
     )
 
-    # Do not predict until enough packets exist
+    # --------------------------------------------------
+    # Wait until minimum number of packets is reached
+    # --------------------------------------------------
+
     if total_packets < minimum_packets:
         return None
 
-    # First prediction at packet 5
+    # --------------------------------------------------
+    # First prediction
+    # --------------------------------------------------
+
     if total_packets == minimum_packets:
         return get_flow_features(flow, packet)
 
-    # Predict every 10 packets after the first prediction
+    # --------------------------------------------------
+    # Subsequent predictions
+    # --------------------------------------------------
+
     if (
         total_packets - minimum_packets
     ) % prediction_interval == 0:
 
         return get_flow_features(flow, packet)
 
-    # No prediction for this packet
     return None
 
 
 def get_flow_features(flow, packet):
     """
-    Convert real flow statistics into the exact
-    features required by the ML model.
+    Convert the current flow statistics into the
+    14 features expected by the Random Forest model.
     """
 
+    # ==================================================
+    # FLOW DURATION
+    # ==================================================
+
+    # The training dataset uses microseconds.
     duration = (
         flow["last_time"]
         - flow["start_time"]
-    ).total_seconds()
+    ).total_seconds() * 1_000_000
 
-    # Prevent division by zero
+    # Prevent zero/negative duration.
     if duration <= 0:
-        duration = 0.000001
+        duration = 1
+
+    # Convert microseconds to seconds ONLY for
+    # calculating rate-based features.
+    duration_seconds = duration / 1_000_000
+
+    # ==================================================
+    # BASIC FLOW COUNTS
+    # ==================================================
 
     total_packets = (
         flow["forward_packets"]
@@ -202,17 +237,34 @@ def get_flow_features(flow, packet):
 
     packet_sizes = flow["packet_sizes"]
 
-    # Mean packet size
+    # ==================================================
+    # PACKET SIZE STATISTICS
+    # ==================================================
+
     packet_mean = statistics.mean(packet_sizes)
 
-    # Standard deviation of packet sizes
     if len(packet_sizes) > 1:
-        packet_std = statistics.stdev(packet_sizes)
+        # Population standard deviation.
+        packet_std = statistics.pstdev(packet_sizes)
     else:
         packet_std = 0
 
-    # Return features in the SAME format
-    # used during model training
+    # ==================================================
+    # RATE FEATURES
+    # ==================================================
+
+    flow_bytes_per_second = (
+        total_bytes / duration_seconds
+    )
+
+    flow_packets_per_second = (
+        total_packets / duration_seconds
+    )
+
+    # ==================================================
+    # RETURN EXACT 14 MODEL FEATURES
+    # ==================================================
+
     return {
         "Protocol": get_protocol_number(
             packet["protocol"]
@@ -220,27 +272,39 @@ def get_flow_features(flow, packet):
 
         "Flow Duration": duration,
 
-        "Total Fwd Packets": flow["forward_packets"],
+        "Total Fwd Packets":
+            flow["forward_packets"],
 
-        "Total Backward Packets": flow["backward_packets"],
+        "Total Backward Packets":
+            flow["backward_packets"],
 
-        "Fwd Packets Length Total": flow["forward_bytes"],
+        "Fwd Packets Length Total":
+            flow["forward_bytes"],
 
-        "Bwd Packets Length Total": flow["backward_bytes"],
+        "Bwd Packets Length Total":
+            flow["backward_bytes"],
 
-        "Flow Bytes/s": total_bytes / duration,
+        "Flow Bytes/s":
+            flow_bytes_per_second,
 
-        "Flow Packets/s": total_packets / duration,
+        "Flow Packets/s":
+            flow_packets_per_second,
 
-        "Packet Length Mean": packet_mean,
+        "Packet Length Mean":
+            packet_mean,
 
-        "Packet Length Std": packet_std,
+        "Packet Length Std":
+            packet_std,
 
-        "SYN Flag Count": flow["syn_count"],
+        "SYN Flag Count":
+            flow["syn_count"],
 
-        "ACK Flag Count": flow["ack_count"],
+        "ACK Flag Count":
+            flow["ack_count"],
 
-        "RST Flag Count": flow["rst_count"],
+        "RST Flag Count":
+            flow["rst_count"],
 
-        "FIN Flag Count": flow["fin_count"]
+        "FIN Flag Count":
+            flow["fin_count"]
     }

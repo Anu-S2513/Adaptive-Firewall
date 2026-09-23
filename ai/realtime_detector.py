@@ -1,3 +1,4 @@
+
 from ai.features.flow_aggregator import process_packet
 from ai.predict.predict import predict_flow
 from ai.logs.prediction_logger import log_prediction
@@ -21,7 +22,7 @@ def analyze_packet(parsed_packet):
         ↓
     Adaptive Firewall Decision
         ↓
-    Firewall Enforcement Layer
+    Firewall Enforcement
         ↓
     Prediction Logging
     """
@@ -29,14 +30,14 @@ def analyze_packet(parsed_packet):
     # 1. Add packet to its network flow
     flow_features = process_packet(parsed_packet)
 
-    # 2. Wait until enough packets are available
+    # 2. Wait until enough packets are collected
     if flow_features is None:
         return None
 
     # 3. ML prediction
     result = predict_flow(flow_features)
 
-    # 4. Get prediction and attack probability
+    # 4. Extract ML result
     prediction = result["prediction"]
     attack_probability = result["attack_probability"]
 
@@ -46,13 +47,13 @@ def analyze_packet(parsed_packet):
         attack_probability
     )
 
-    # 6. Execute firewall enforcement layer
+    # 6. Firewall enforcement
     enforcement_result = enforce_firewall_action(
         firewall_action,
         parsed_packet["source_ip"]
     )
 
-    # 7. Prepare complete result
+    # 7. Prepare final result
     prediction_result = {
         "flow_features": flow_features,
         "prediction": prediction,
@@ -62,10 +63,12 @@ def analyze_packet(parsed_packet):
         "enforcement_message": enforcement_result["message"]
     }
 
-    # 8. Save prediction and firewall decision
+    # 8. Save prediction to log
     log_prediction(
         parsed_packet,
         prediction_result
     )
 
+    # 9. Return result
     return prediction_result
+
