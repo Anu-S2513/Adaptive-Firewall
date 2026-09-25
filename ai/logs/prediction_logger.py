@@ -1,18 +1,26 @@
 import csv
 import os
+import time
 from datetime import datetime
 
 
-# Get SentinelAI project root
+# ============================================================
+# GET SENTINELAI PROJECT ROOT
+# ============================================================
+
 project_root = os.path.dirname(
     os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__))
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
     )
 )
 
 
-# Save predictions here:
-# SentinelAI/ai/logs/predictions.csv
+# ============================================================
+# PREDICTION LOG FILE
+# ============================================================
+
 log_file = os.path.join(
     project_root,
     "ai",
@@ -21,7 +29,10 @@ log_file = os.path.join(
 )
 
 
-# CSV columns
+# ============================================================
+# CSV COLUMNS
+# ============================================================
+
 fieldnames = [
     "timestamp",
     "source_ip",
@@ -35,9 +46,14 @@ fieldnames = [
 ]
 
 
+# ============================================================
+# INITIALIZE LOG
+# ============================================================
+
 def initialize_log():
     """
-    Create predictions.csv and add header if needed.
+    Create predictions.csv and add the header
+    if the file does not exist or is empty.
     """
 
     os.makedirs(
@@ -45,7 +61,6 @@ def initialize_log():
         exist_ok=True
     )
 
-    # Create file with header if it doesn't exist or is empty
     if (
         not os.path.exists(log_file)
         or os.path.getsize(log_file) == 0
@@ -66,35 +81,122 @@ def initialize_log():
             writer.writeheader()
 
 
-def log_prediction(packet, result):
+# ============================================================
+# RESET LOG FOR A NEW MONITORING SESSION
+# ============================================================
+
+def reset_log():
     """
-    Save ML prediction and adaptive firewall decision.
+    Clears the previous prediction history and
+    creates a fresh predictions.csv for the
+    current SentinelAI monitoring session.
+
+    Uses a temporary file and retries replacement
+    because Windows may temporarily lock the file
+    while FastAPI is reading it.
+    """
+
+    os.makedirs(
+        os.path.dirname(log_file),
+        exist_ok=True
+    )
+
+    temporary_file = (
+        log_file + ".reset.tmp"
+    )
+
+    # --------------------------------------------------------
+    # Create fresh CSV with header
+    # --------------------------------------------------------
+
+    with open(
+        temporary_file,
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.DictWriter(
+            file,
+            fieldnames=fieldnames
+        )
+
+        writer.writeheader()
+
+    # --------------------------------------------------------
+    # Replace old log
+    # --------------------------------------------------------
+
+    max_attempts = 10
+
+    for attempt in range(
+        max_attempts
+    ):
+
+        try:
+
+            os.replace(
+                temporary_file,
+                log_file
+            )
+
+            return
+
+        except PermissionError:
+
+            if attempt == max_attempts - 1:
+
+                raise
+
+            time.sleep(0.1)
+
+
+# ============================================================
+# SAVE PREDICTION
+# ============================================================
+
+def log_prediction(
+    packet,
+    result
+):
+    """
+    Save ML prediction and adaptive
+    firewall decision.
     """
 
     initialize_log()
 
     log_data = {
-        "timestamp": datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        ),
 
-        "source_ip": packet["source_ip"],
+        "timestamp":
+            datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
 
-        "destination_ip": packet["destination_ip"],
+        "source_ip":
+            packet["source_ip"],
 
-        "source_port": packet["source_port"],
+        "destination_ip":
+            packet["destination_ip"],
 
-        "destination_port": packet["destination_port"],
+        "source_port":
+            packet["source_port"],
 
-        "protocol": packet["protocol"],
+        "destination_port":
+            packet["destination_port"],
 
-        "prediction": result["prediction"],
+        "protocol":
+            packet["protocol"],
 
-        "attack_probability": result["attack_probability"],
+        "prediction":
+            result["prediction"],
 
-        "firewall_action": result["firewall_action"]
+        "attack_probability":
+            result["attack_probability"],
+
+        "firewall_action":
+            result["firewall_action"]
     }
-
 
     with open(
         log_file,
@@ -108,10 +210,15 @@ def log_prediction(packet, result):
             fieldnames=fieldnames
         )
 
-        writer.writerow(log_data)
+        writer.writerow(
+            log_data
+        )
 
         file.flush()
 
 
-# Create the CSV immediately when this file is imported
+# ============================================================
+# CREATE CSV WHEN MODULE IS IMPORTED
+# ============================================================
+
 initialize_log()
