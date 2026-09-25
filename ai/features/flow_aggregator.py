@@ -2,6 +2,7 @@ from datetime import datetime
 import statistics
 import json
 import os
+import time
 
 
 # =========================================================
@@ -64,9 +65,7 @@ def create_flow(packet):
     now = datetime.now()
 
     return {
-
         "start_time": now,
-
         "last_time": now,
 
         "initiator_ip":
@@ -76,21 +75,16 @@ def create_flow(packet):
             str(packet["source_port"]),
 
         "forward_packets": 0,
-
         "backward_packets": 0,
 
         "forward_bytes": 0,
-
         "backward_bytes": 0,
 
         "packet_sizes": [],
 
         "syn_count": 0,
-
         "ack_count": 0,
-
         "rst_count": 0,
-
         "fin_count": 0
     }
 
@@ -107,55 +101,48 @@ def update_flow(flow, packet):
 
     packet_size = packet["packet_size"]
 
-
+    # -----------------------------------------------------
     # Determine packet direction
+    # -----------------------------------------------------
 
     if (
-        packet["source_ip"]
-        == flow["initiator_ip"]
-
+        packet["source_ip"] == flow["initiator_ip"]
         and
-
-        str(packet["source_port"])
-        == flow["initiator_port"]
+        str(packet["source_port"]) == flow["initiator_port"]
     ):
 
         flow["forward_packets"] += 1
-
         flow["forward_bytes"] += packet_size
 
     else:
 
         flow["backward_packets"] += 1
-
         flow["backward_bytes"] += packet_size
 
-
+    # -----------------------------------------------------
     # Store packet size
+    # -----------------------------------------------------
 
     flow["packet_sizes"].append(
         packet_size
     )
 
-
+    # -----------------------------------------------------
     # TCP flags
+    # -----------------------------------------------------
 
     flags = str(
         packet["tcp_flags"]
     )
 
-
     if "S" in flags:
         flow["syn_count"] += 1
-
 
     if "A" in flags:
         flow["ack_count"] += 1
 
-
     if "R" in flags:
         flow["rst_count"] += 1
-
 
     if "F" in flags:
         flow["fin_count"] += 1
@@ -183,8 +170,9 @@ def process_packet(
         packet
     )
 
-
+    # -----------------------------------------------------
     # Create flow if necessary
+    # -----------------------------------------------------
 
     if flow_key not in flows:
 
@@ -192,19 +180,20 @@ def process_packet(
             packet
         )
 
-
     flow = flows[flow_key]
 
-
+    # -----------------------------------------------------
     # Update flow
+    # -----------------------------------------------------
 
     update_flow(
         flow,
         packet
     )
 
-
+    # -----------------------------------------------------
     # Total packets
+    # -----------------------------------------------------
 
     total_packets = (
         flow["forward_packets"]
@@ -212,15 +201,17 @@ def process_packet(
         flow["backward_packets"]
     )
 
-
+    # -----------------------------------------------------
     # Wait until enough packets exist
+    # -----------------------------------------------------
 
     if total_packets < minimum_packets:
 
         return None
 
-
+    # -----------------------------------------------------
     # First prediction
+    # -----------------------------------------------------
 
     if total_packets == minimum_packets:
 
@@ -229,8 +220,9 @@ def process_packet(
             packet
         )
 
-
+    # -----------------------------------------------------
     # Periodic predictions
+    # -----------------------------------------------------
 
     if (
         total_packets
@@ -242,7 +234,6 @@ def process_packet(
             flow,
             packet
         )
-
 
     return None
 
@@ -259,8 +250,9 @@ def get_flow_features(flow, packet):
     the Random Forest model.
     """
 
-
+    # -----------------------------------------------------
     # Flow duration in microseconds
+    # -----------------------------------------------------
 
     duration = (
         flow["last_time"]
@@ -268,20 +260,21 @@ def get_flow_features(flow, packet):
         flow["start_time"]
     ).total_seconds() * 1_000_000
 
-
     if duration <= 0:
 
         duration = 1
 
-
+    # -----------------------------------------------------
     # Convert to seconds
+    # -----------------------------------------------------
 
     duration_seconds = (
         duration / 1_000_000
     )
 
-
+    # -----------------------------------------------------
     # Total packets
+    # -----------------------------------------------------
 
     total_packets = (
         flow["forward_packets"]
@@ -289,8 +282,9 @@ def get_flow_features(flow, packet):
         flow["backward_packets"]
     )
 
-
+    # -----------------------------------------------------
     # Total bytes
+    # -----------------------------------------------------
 
     total_bytes = (
         flow["forward_bytes"]
@@ -298,18 +292,17 @@ def get_flow_features(flow, packet):
         flow["backward_bytes"]
     )
 
-
+    # -----------------------------------------------------
     # Packet statistics
+    # -----------------------------------------------------
 
     packet_sizes = (
         flow["packet_sizes"]
     )
 
-
     packet_mean = statistics.mean(
         packet_sizes
     )
-
 
     if len(packet_sizes) > 1:
 
@@ -321,8 +314,9 @@ def get_flow_features(flow, packet):
 
         packet_std = 0
 
-
+    # -----------------------------------------------------
     # Flow rates
+    # -----------------------------------------------------
 
     flow_bytes_per_second = (
         total_bytes
@@ -330,15 +324,15 @@ def get_flow_features(flow, packet):
         duration_seconds
     )
 
-
     flow_packets_per_second = (
         total_packets
         /
         duration_seconds
     )
 
-
+    # -----------------------------------------------------
     # Return the 14 model features
+    # -----------------------------------------------------
 
     return {
 
@@ -404,10 +398,11 @@ def get_active_flows():
 
     results = []
 
-
     for flow_key, flow in flows.items():
 
+        # -------------------------------------------------
         # Total packets
+        # -------------------------------------------------
 
         total_packets = (
             flow["forward_packets"]
@@ -415,8 +410,9 @@ def get_active_flows():
             flow["backward_packets"]
         )
 
-
+        # -------------------------------------------------
         # Total bytes
+        # -------------------------------------------------
 
         total_bytes = (
             flow["forward_bytes"]
@@ -424,8 +420,9 @@ def get_active_flows():
             flow["backward_bytes"]
         )
 
-
+        # -------------------------------------------------
         # Duration
+        # -------------------------------------------------
 
         duration = (
             flow["last_time"]
@@ -433,19 +430,17 @@ def get_active_flows():
             flow["start_time"]
         ).total_seconds()
 
-
+        # -------------------------------------------------
         # Flow endpoints
+        # -------------------------------------------------
 
         endpoint1 = flow_key[0]
-
         endpoint2 = flow_key[1]
-
 
         initiator = (
             flow["initiator_ip"],
             flow["initiator_port"]
         )
-
 
         if endpoint1 == initiator:
 
@@ -455,8 +450,9 @@ def get_active_flows():
 
             destination = endpoint1
 
-
+        # -------------------------------------------------
         # Behavioral flow record
+        # -------------------------------------------------
 
         results.append({
 
@@ -506,7 +502,6 @@ def get_active_flows():
                 flow["fin_count"]
         })
 
-
     return results
 
 
@@ -517,22 +512,26 @@ def get_active_flows():
 def save_active_flows(file_path):
 
     """
-    Saves current aggregated flows
-    to a JSON file.
+    Saves current aggregated flows to a JSON file.
 
     FastAPI reads this file to display
     behavioral network activity.
+
+    Uses a temporary file and retries the
+    replacement because Windows may temporarily
+    deny access while another process is reading
+    the active flow file.
     """
 
     active_flows = get_active_flows()
 
-
+    # -----------------------------------------------------
     # Create directory
+    # -----------------------------------------------------
 
     directory = os.path.dirname(
         file_path
     )
-
 
     if directory:
 
@@ -541,15 +540,17 @@ def save_active_flows(file_path):
             exist_ok=True
         )
 
-
+    # -----------------------------------------------------
     # Temporary file
+    # -----------------------------------------------------
 
     temporary_file = (
         file_path + ".tmp"
     )
 
-
+    # -----------------------------------------------------
     # Write JSON
+    # -----------------------------------------------------
 
     with open(
         temporary_file,
@@ -558,7 +559,6 @@ def save_active_flows(file_path):
     ) as file:
 
         json.dump(
-
             {
                 "total_flows":
                     len(active_flows),
@@ -566,16 +566,36 @@ def save_active_flows(file_path):
                 "flows":
                     active_flows
             },
-
             file,
-
             indent=2
         )
 
+    # -----------------------------------------------------
+    # Replace old file with retry
+    # -----------------------------------------------------
 
-    # Replace old file
+    max_attempts = 5
 
-    os.replace(
-        temporary_file,
-        file_path
-    )
+    for attempt in range(
+        max_attempts
+    ):
+
+        try:
+
+            os.replace(
+                temporary_file,
+                file_path
+            )
+
+            return
+
+        except PermissionError:
+
+            # If this was the final attempt,
+            # let the error propagate.
+            if attempt == max_attempts - 1:
+
+                raise
+
+            # Wait briefly and retry.
+            time.sleep(0.05)
