@@ -41,6 +41,10 @@ function escapeHTML(value) {
 }
 
 
+/* =========================================================
+   FORMAT BYTES
+========================================================= */
+
 function formatBytes(bytes) {
 
     bytes = safeNumber(bytes);
@@ -58,6 +62,69 @@ function formatBytes(bytes) {
     }
 
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+
+/* =========================================================
+   TRANSFER INFORMATION
+========================================================= */
+
+function getTransferInfo(flow) {
+
+    const direction =
+        String(flow.transfer_direction || "NO DATA").toUpperCase();
+
+    const forwardBytes =
+        safeNumber(flow.forward_bytes);
+
+    const backwardBytes =
+        safeNumber(flow.backward_bytes);
+
+    const totalBytes =
+        safeNumber(flow.total_bytes);
+
+    let transferBytes = totalBytes;
+    let icon = "↕";
+    let label = "BIDIRECTIONAL";
+    let className = "transfer-bidirectional";
+
+
+    if (direction === "DOWNLOAD") {
+
+        transferBytes = backwardBytes;
+        icon = "↓";
+        label = "DOWNLOAD";
+        className = "transfer-download";
+
+    } else if (direction === "UPLOAD") {
+
+        transferBytes = forwardBytes;
+        icon = "↑";
+        label = "UPLOAD";
+        className = "transfer-upload";
+
+    } else if (direction === "BIDIRECTIONAL") {
+
+        transferBytes = totalBytes;
+        icon = "↕";
+        label = "BIDIRECTIONAL";
+        className = "transfer-bidirectional";
+
+    } else {
+
+        transferBytes = totalBytes;
+        icon = "↕";
+        label = "NO DATA";
+        className = "transfer-none";
+    }
+
+
+    return {
+        icon: icon,
+        label: label,
+        size: formatBytes(transferBytes),
+        className: className
+    };
 }
 
 
@@ -85,12 +152,14 @@ function updateTrafficDonut(total, normal, attacks) {
         )
     `;
 
+
     const donutTotal =
         document.getElementById("donutTotal");
 
     if (donutTotal) {
         donutTotal.textContent = total;
     }
+
 
     const normalPercent =
         document.getElementById("normalPercent");
@@ -99,6 +168,7 @@ function updateTrafficDonut(total, normal, attacks) {
         normalPercent.textContent =
             `${((normal / totalSafe) * 100).toFixed(1)}%`;
     }
+
 
     const attackPercent =
         document.getElementById("attackPercent");
@@ -153,12 +223,14 @@ function updateFirewallDonut(
         )
     `;
 
+
     const firewallTotal =
         document.getElementById("firewallTotal");
 
     if (firewallTotal) {
         firewallTotal.textContent = total;
     }
+
 
     const allowedPercent =
         document.getElementById("allowedPercent");
@@ -168,6 +240,7 @@ function updateFirewallDonut(
             `${((allowed / totalSafe) * 100).toFixed(1)}%`;
     }
 
+
     const monitoredPercent =
         document.getElementById("monitoredPercent");
 
@@ -175,6 +248,7 @@ function updateFirewallDonut(
         monitoredPercent.textContent =
             `${((monitored / totalSafe) * 100).toFixed(1)}%`;
     }
+
 
     const blockedPercent =
         document.getElementById("blockedPercent");
@@ -199,6 +273,7 @@ function updateRiskChart(predictions) {
         return;
     }
 
+
     if (!predictions || predictions.length === 0) {
 
         container.innerHTML = `
@@ -209,6 +284,7 @@ function updateRiskChart(predictions) {
 
         return;
     }
+
 
     const values = predictions
         .slice()
@@ -226,12 +302,15 @@ function updateRiskChart(predictions) {
             )
         );
 
+
     if (values.length === 1) {
         values.push(values[0]);
     }
 
+
     const width = 700;
     const height = 150;
+
 
     const points = values.map(
         (value, index) => {
@@ -254,8 +333,10 @@ function updateRiskChart(predictions) {
         }
     ).join(" ");
 
+
     const areaPoints =
         `0,${height} ${points} ${width},${height}`;
+
 
     container.innerHTML = `
         <svg
@@ -290,10 +371,12 @@ function updateRiskChart(predictions) {
 
             </defs>
 
+
             <polygon
                 points="${areaPoints}"
                 fill="url(#riskFill)"
             />
+
 
             <polyline
                 points="${points}"
@@ -324,11 +407,13 @@ async function loadStats() {
             }
         );
 
+
         if (!response.ok) {
             throw new Error(
                 "Failed to load statistics"
             );
         }
+
 
         const data =
             await response.json();
@@ -483,12 +568,14 @@ async function loadStats() {
             safeNumber(data.blocked)
         );
 
+
     } catch (error) {
 
         console.error(
             "Statistics error:",
             error
         );
+
 
         const systemStatus =
             document.getElementById(
@@ -499,6 +586,7 @@ async function loadStats() {
             systemStatus.textContent =
                 "OFFLINE";
         }
+
 
         const apiStatus =
             document.getElementById(
@@ -528,14 +616,17 @@ async function loadPredictions() {
             }
         );
 
+
         if (!response.ok) {
             throw new Error(
                 "Failed to load predictions"
             );
         }
 
+
         const data =
             await response.json();
+
 
         latestPredictions =
             data.predictions || [];
@@ -579,6 +670,7 @@ async function loadPredictions() {
 
         updateAlerts(attacks);
 
+
     } catch (error) {
 
         console.error(
@@ -604,14 +696,17 @@ async function loadFlows() {
             }
         );
 
+
         if (!response.ok) {
             throw new Error(
                 "Failed to load network flows"
             );
         }
 
+
         const data =
             await response.json();
+
 
         latestFlows =
             data.flows || [];
@@ -632,12 +727,14 @@ async function loadFlows() {
                 `${latestFlows.length} active flows`;
         }
 
+
     } catch (error) {
 
         console.error(
             "Flow error:",
             error
         );
+
 
         updateFlowTable([]);
     }
@@ -681,9 +778,9 @@ function updateFlowTable(flows) {
 
 
     /*
-       Show the most recent 15 flows.
-       Each row represents a FLOW,
-       not an individual packet.
+        Show the most recent 15 flows.
+        Each row represents a FLOW,
+        not an individual packet.
     */
 
     flows
@@ -697,8 +794,8 @@ function updateFlowTable(flows) {
 
 
             /*
-               Find the latest ML prediction
-               belonging to this flow.
+                Find the latest ML prediction
+                belonging to this flow.
             */
 
             const matchingPrediction =
@@ -751,6 +848,14 @@ function updateFlowTable(flows) {
                         : "action-allow";
 
 
+            /* 
+                GET TRANSFER INFORMATION
+            */
+
+            const transfer =
+                getTransferInfo(flow);
+
+
             row.innerHTML = `
 
                 <td>
@@ -759,11 +864,13 @@ function updateFlowTable(flows) {
                     )}
                 </td>
 
+
                 <td>
                     ${escapeHTML(
                         flow.destination_ip
                     )}
                 </td>
+
 
                 <td>
                     <span class="protocol">
@@ -773,17 +880,35 @@ function updateFlowTable(flows) {
                     </span>
                 </td>
 
+
                 <td>
                     ${safeNumber(
                         flow.total_packets
                     )}
                 </td>
 
+
+                <!-- TRANSFER COLUMN -->
+
                 <td>
-                    ${formatBytes(
-                        flow.total_bytes
-                    )}
+                    <div class="transfer-info ${transfer.className}">
+
+                        <strong>
+                            ${transfer.icon}
+                            ${escapeHTML(
+                                transfer.label
+                            )}
+                        </strong>
+
+                        <span>
+                            ${escapeHTML(
+                                transfer.size
+                            )}
+                        </span>
+
+                    </div>
                 </td>
+
 
                 <td>
                     ${safeNumber(
@@ -791,9 +916,11 @@ function updateFlowTable(flows) {
                     )}s
                 </td>
 
+
                 <td>
                     ${risk.toFixed(2)}%
                 </td>
+
 
                 <td>
                     <span class="
@@ -809,6 +936,7 @@ function updateFlowTable(flows) {
                         )}
                     </span>
                 </td>
+
 
                 <td>
                     <span class="
@@ -874,6 +1002,7 @@ function updateAlerts(attacks) {
 
             const item =
                 document.createElement("div");
+
 
             item.className =
                 "alert-item";

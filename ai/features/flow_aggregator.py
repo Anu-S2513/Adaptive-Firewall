@@ -383,6 +383,51 @@ def get_flow_features(flow, packet):
 
 
 # =========================================================
+# GET TRANSFER DIRECTION
+# =========================================================
+
+def get_transfer_direction(
+    forward_bytes,
+    backward_bytes
+):
+
+    """
+    Determines the dominant data-transfer direction
+    of a network flow.
+
+    If one direction has at least 3x more data,
+    classify it as UPLOAD or DOWNLOAD.
+
+    Otherwise classify it as BIDIRECTIONAL.
+    """
+
+    # No data transferred yet
+    if forward_bytes == 0 and backward_bytes == 0:
+        return "NO DATA"
+
+    # Only backward traffic
+    if forward_bytes == 0:
+        return "DOWNLOAD"
+
+    # Only forward traffic
+    if backward_bytes == 0:
+        return "UPLOAD"
+
+    # Download:
+    # destination/server sends much more data
+    if backward_bytes >= forward_bytes * 3:
+        return "DOWNLOAD"
+
+    # Upload:
+    # source/client sends much more data
+    if forward_bytes >= backward_bytes * 3:
+        return "UPLOAD"
+
+    # Similar amount in both directions
+    return "BIDIRECTIONAL"
+
+
+# =========================================================
 # GET ACTIVE FLOWS
 # =========================================================
 
@@ -417,6 +462,15 @@ def get_active_flows():
         total_bytes = (
             flow["forward_bytes"]
             +
+            flow["backward_bytes"]
+        )
+
+        # -------------------------------------------------
+        # Transfer direction
+        # -------------------------------------------------
+
+        transfer_direction = get_transfer_direction(
+            flow["forward_bytes"],
             flow["backward_bytes"]
         )
 
@@ -480,8 +534,17 @@ def get_active_flows():
             "backward_packets":
                 flow["backward_packets"],
 
+            "forward_bytes":
+                flow["forward_bytes"],
+
+            "backward_bytes":
+                flow["backward_bytes"],
+
             "total_bytes":
                 total_bytes,
+
+            "transfer_direction":
+                transfer_direction,
 
             "duration":
                 round(
